@@ -1,15 +1,5 @@
 import tkinter as tk
 
-root = tk.Tk()
-root.title('Sorting Visualizer')
-root.geometry('800x600')
-
-e = tk.Entry(root)
-
-choice = tk.StringVar(root)
-
-time_delay = 100
-
 
 # SORTING ALGORITHMS
 
@@ -48,7 +38,7 @@ def selsort(l):
             if l[min_idx] > l[j]:
                 min_idx = j
                 root.update()
-                root.after(time_delay)
+                root.after(slider.get())
         l[i], l[min_idx] = l[min_idx], l[i]
         yield l
 
@@ -164,6 +154,18 @@ def quick_sort(l, left, right):
     yield from quick_sort(l, right + 1, old_r)
 
 
+# GUI
+root = tk.Tk()
+root.title('Sorting Visualizer')
+root.geometry('800x600')
+
+e = tk.Entry(root)
+
+choice = tk.StringVar(root)
+
+slider = tk.Scale(root, from_=1, to=1000, orient='horizontal')
+slider.set(100)
+
 sort_dic = {
     "bubble": bubsort,
     "insertion": insort,
@@ -176,38 +178,81 @@ choices = set(sort_dic.keys())
 menu = tk.OptionMenu(root, choice, *choices)
 
 lb = tk.Label(root, text='START')
-c = tk.Canvas(root, width=700, height=500, bg='white')
+c = tk.Canvas(root, width=700, height=550, bg='white')
 
 
-def onclick():
-    global c
+def visualize(l):
+    n = len(l)
+    for i in range(n):
+        height = l[i] * 500 / max(l)
+        c.create_rectangle(i * 700 / n, 500 - height, (i + 1) * 700 / n, 500, fill="green")
+        c.create_text(i * 700 / n, 0, text=str(l[i]))
+
+
+stopped = False
+paused = False
+
+
+def start():
+    global c, delay, stopped, paused
+    stopped = False
+    paused = False
     root.update()
     c.delete("all")
-    lb.config(text=choice.get() + " sorting " + e.get() + " values")
+    lb.config(text="this is the array")
     n = int(e.get())
     sl = [i for i in range(n, 0, -1)]
 
-    for i in range(n):
-        height = sl[i] * 500 / n
-        c.create_rectangle(i * 700 / n, 500 - height, (i + 1) * 700 / n, 500, fill="green")
-    root.update()
+    visualize(sl)
     root.after(1000)
+    root.update()
+
+    lb.config(text=choice.get() + " sorting " + e.get() + " values")
 
     g = sort_dic[choice.get()](sl)
+
     for l_iter in g:
         c.delete("all")
-        for i in range(n):
-            height = l_iter[i] * 500 / n
-            c.create_rectangle(i * 700 / n, 500 - height, (i + 1) * 700 / n, 500, fill="green")
+        visualize(l_iter)
+        delay = root.after(slider.get())
         root.update()
-        root.after(time_delay)
+        while paused:
+            root.update()
+        if stopped:
+            c.delete("all")
+            break
 
 
-b = tk.Button(root, text='Go', command=onclick)
+def pause():
+    global paused, pause_button
+    if paused:
+        paused = False
+        lb.config(text=choice.get() + " sorting " + e.get() + " values")
+        pause_button.config(text='PAUSE')
+    else:
+        paused = True
+        lb.config(text="paused")
+        pause_button.config(text='CONTINUE')
+
+
+def stop():
+    global stopped
+    stopped = True
+    lb.config(text="stopped")
+
+
+buttons = tk.Frame(root)
+start_button = tk.Button(buttons, text='GO', command=start)
+pause_button = tk.Button(buttons, text='PAUSE', command=pause)
+stop_button = tk.Button(buttons, text='STOP', command=stop)
 
 e.pack()
 menu.pack()
-b.pack()
+slider.pack(fill='x', expand=True)
+start_button.pack(side='left', fill='x', expand=True)
+pause_button.pack(side='left', fill='x', expand=True)
+stop_button.pack(side='right', fill='x', expand=True)
+buttons.pack()
 lb.pack()
 c.pack()
 root.mainloop()
